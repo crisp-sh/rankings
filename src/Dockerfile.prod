@@ -35,6 +35,9 @@ RUN bunx playwright install chromium
 # Verify the executable exists after install
 RUN ls -lha /root/.cache/ms-playwright/chromium_headless_shell-1169/chrome-linux/headless_shell || echo "Headless shell not found!"
 
+# Ensure the executable has execute permissions
+RUN chmod +x /root/.cache/ms-playwright/chromium_headless_shell-1169/chrome-linux/headless_shell
+
 # Final stage (reusing base for simplicity here)
 FROM base AS final
 WORKDIR /app
