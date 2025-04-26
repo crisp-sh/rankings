@@ -11,7 +11,7 @@ WORKDIR /app
 #     # Check Playwright docs for up-to-date Alpine dependencies
 
 # Install bun dependencies
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 # Use --production if you don't need devDependencies
 RUN bun install --frozen-lockfile
 
