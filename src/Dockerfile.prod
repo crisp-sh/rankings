@@ -1,30 +1,22 @@
-# Use an official Node.js Debian-based image (Bookworm)
-FROM node:20-bookworm AS base
+FROM node:20-bookworm-slim AS base
 WORKDIR /app
 
-# Install curl (for healthcheck) and unzip (needed for bun install)
-RUN apt-get update && apt-get install -y curl unzip --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y curl unzip --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install Bun
-RUN curl -fsSL https://bun.sh/install | bash
+RUN curl -fsSL https://bun.sh/install | bash && bun pm cache clean
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Install bun dependencies
 COPY package.json bun.lock ./
-# Use --production if you don't need devDependencies
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile && bun pm cache clean
 
-# Copy application code (relative to build context - root)
 COPY src/server.ts ./server.ts
 COPY src/scraper.ts ./scraper.ts
 COPY src/cache.ts ./cache.ts
 
-# Install Playwright browsers + dependencies using the recommended method for Debian
 RUN bunx playwright install --with-deps chromium
 
-# Expose the application port
 EXPOSE 3000
 
-# Run the application
-# Note: No need for multi-stage just for this now
 CMD ["bun", "run", "/app/server.ts"]
