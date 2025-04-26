@@ -18,9 +18,10 @@ COPY src/scraper.ts ./scraper.ts
 COPY src/cache.ts ./cache.ts
 
 # Install Playwright browsers into the image
-# Using --with-deps might be redundant if apk add worked, but often helpful
+# Removed --with-deps as we handle system deps via apk
 # Installing only chromium as per error message
-RUN bunx playwright install --with-deps chromium
+RUN bunx playwright install-deps
+RUN bunx playwright install chromium
 
 # Final stage (reusing base for simplicity here)
 FROM base AS final
