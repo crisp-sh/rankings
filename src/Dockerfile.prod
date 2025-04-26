@@ -2,9 +2,19 @@
 FROM oven/bun:1-alpine AS base
 WORKDIR /app
 
-# Install base dependencies + curl for healthcheck + potential Playwright deps
-# Consolided apk add command
-RUN apk add --no-cache curl chromium
+# Install base dependencies + more potential Playwright/Chromium deps
+# See https://playwright.dev/docs/ci#docker
+# List may need adjustment for specific Playwright/Alpine versions
+RUN apk add --no-cache \
+    curl \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    udev \
+    lcms2 # Added potential dependencies
 
 # Install bun dependencies
 COPY package.json bun.lock ./
@@ -21,6 +31,9 @@ COPY src/cache.ts ./cache.ts
 # Removed --with-deps as we handle system deps via apk
 # Installing only chromium as per error message
 RUN bunx playwright install chromium
+
+# Verify the executable exists after install
+RUN ls -lha /root/.cache/ms-playwright/chromium_headless_shell-1169/chrome-linux/headless_shell || echo "Headless shell not found!"
 
 # Final stage (reusing base for simplicity here)
 FROM base AS final
