@@ -16,9 +16,10 @@ COPY package.json bun.lockb ./
 RUN bun install --frozen-lockfile
 
 # Copy application code
-COPY ./server.ts ./server.ts
-COPY ./scraper.ts ./scraper.ts
-COPY ./cache.ts ./cache.ts
+# Paths are relative to the build context (repository root)
+COPY src/server.ts ./server.ts
+COPY src/scraper.ts ./scraper.ts
+COPY src/cache.ts ./cache.ts
 
 # Install Playwright browsers into the image (can make image large)
 # Ensure system dependencies were installed correctly earlier
