@@ -5,12 +5,11 @@ WORKDIR /app
 # Install base dependencies + curl for healthcheck + potential Playwright deps
 RUN apk add --no-cache \
     curl \
+    chromium \
     # udev \
     # ttf-freefont \
-    # chromium \
     # Add other specific libs required by 'playwright install-deps' output if needed
     # Check Playwright docs for up-to-date Alpine dependencies
-
 # Install bun dependencies
 COPY package.json bun.lock ./
 # Use --production if you don't need devDependencies
@@ -22,9 +21,10 @@ COPY src/server.ts ./server.ts
 COPY src/scraper.ts ./scraper.ts
 COPY src/cache.ts ./cache.ts
 
-# Install Playwright browsers into the image (can make image large)
-# Ensure system dependencies were installed correctly earlier
-# RUN bunx playwright install --with-deps chromium # Install only chromium if that's enough
+# Install Playwright browsers into the image
+# Using --with-deps might be redundant if apk add worked, but often helpful
+# Installing only chromium as per error message
+RUN bunx playwright install --with-deps chromium
 
 # Final stage (reusing base for simplicity here)
 FROM base AS final
