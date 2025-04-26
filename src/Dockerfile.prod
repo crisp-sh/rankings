@@ -20,7 +20,6 @@ COPY src/cache.ts ./cache.ts
 # Install Playwright browsers into the image
 # Removed --with-deps as we handle system deps via apk
 # Installing only chromium as per error message
-RUN bunx playwright install-deps
 RUN bunx playwright install chromium
 
 # Final stage (reusing base for simplicity here)
