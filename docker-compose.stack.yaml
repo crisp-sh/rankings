@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/crisp-sh/rankings:latest}
+    networks:
+      - proxy
+    volumes:
+      - rankings-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.llm-rankings.rule=Host(`${DOMAIN}`)"
+        - "traefik.http.routers.llm-rankings.entrypoints=websecure"
+        - "traefik.http.routers.llm-rankings.tls.certresolver=cloudflare"
+        - "traefik.http.services.llm-rankings.loadbalancer.server.port=3000"
+        - "traefik.docker.network=proxy"
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  rankings-data:
+    driver: local
