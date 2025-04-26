@@ -14,6 +14,11 @@ Bun.serve({
       const url = new URL(req.url);
       const pathname = url.pathname;
 
+      // --- Health Check Endpoint ---
+      if (pathname === '/health') {
+        return new Response("OK", { status: 200 });
+      }
+
       // --- Manual Scrape Trigger (Keep first for clarity) ---
       if (pathname === '/api/scrape') {
         try {

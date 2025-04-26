@@ -2,13 +2,14 @@
 FROM oven/bun:1-alpine AS base
 WORKDIR /app
 
-# Install base dependencies + those potentially needed for Playwright/Chromium on Alpine
-# RUN apk add --no-cache \
-#     udev \
-#     ttf-freefont \
-#     chromium \
-#     # Add other specific libs required by 'playwright install-deps' output if needed
-#     # Check Playwright docs for up-to-date Alpine dependencies
+# Install base dependencies + curl for healthcheck + potential Playwright deps
+RUN apk add --no-cache \
+    curl \
+    # udev \
+    # ttf-freefont \
+    # chromium \
+    # Add other specific libs required by 'playwright install-deps' output if needed
+    # Check Playwright docs for up-to-date Alpine dependencies
 
 # Install bun dependencies
 COPY package.json bun.lock ./
