@@ -1,0 +1,42 @@
+# Use an official Bun image, Alpine for smaller size
+FROM oven/bun:1-alpine AS base
+WORKDIR /app
+
+# Install base dependencies + those potentially needed for Playwright/Chromium on Alpine
+# RUN apk add --no-cache \
+#     udev \
+#     ttf-freefont \
+#     chromium \
+#     # Add other specific libs required by 'playwright install-deps' output if needed
+#     # Check Playwright docs for up-to-date Alpine dependencies
+
+# Install bun dependencies
+COPY package.json bun.lockb ./
+# Use --production if you don't need devDependencies
+RUN bun install --frozen-lockfile
+
+# Copy application code
+COPY ./server.ts ./server.ts
+COPY ./scraper.ts ./scraper.ts
+COPY ./cache.ts ./cache.ts
+
+# Install Playwright browsers into the image (can make image large)
+# Ensure system dependencies were installed correctly earlier
+# RUN bunx playwright install --with-deps chromium # Install only chromium if that's enough
+
+# Final stage (reusing base for simplicity here)
+FROM base AS final
+WORKDIR /app
+
+# Copy installed dependencies and code from base stage
+COPY --from=base /app .
+
+# Copy the data directory *if* you need initial data in the image
+# Otherwise, rely on the volume mount defined in docker-compose
+# COPY ./data ./data
+
+# Expose the application port
+EXPOSE 3000
+
+# Run the application
+CMD ["bun", "run", "/app/server.ts"]
