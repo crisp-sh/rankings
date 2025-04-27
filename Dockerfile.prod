@@ -1,0 +1,71 @@
+# Stage 1: Build Frontend
+FROM node:20-bookworm-slim AS frontend-builder
+WORKDIR /app/frontend
+
+# Install Bun
+RUN apt-get update && apt-get install -y curl unzip --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Install frontend dependencies
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile && bun pm cache clean
+
+# Copy frontend source and build
+COPY frontend/ .
+RUN bun run build
+
+# Stage 2: Install Backend Dependencies (including Playwright package)
+FROM node:20-bookworm-slim AS backend-deps
+WORKDIR /app
+
+# Install Bun & System Dependencies for Playwright
+# Reference: https://playwright.dev/docs/docker#dependencies
+RUN apt-get update && \
+    apt-get install -y curl unzip libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libdbus-1-3 libatspi2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2 libasound2 --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Install all backend dependencies
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile && bun pm cache clean
+
+# Stage 3: Install Playwright Browsers
+FROM backend-deps AS playwright-installer
+WORKDIR /app
+RUN bunx playwright install chromium
+
+# Stage 4: Final Production Image
+FROM node:20-bookworm-slim AS final
+WORKDIR /app
+
+# Install Bun & Runtime Dependencies (including curl for healthcheck)
+RUN apt-get update && \
+    apt-get install -y curl libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libdbus-1-3 libatspi2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2 libasound2 --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Install ONLY production backend dependencies
+COPY package.json bun.lock ./
+RUN bun install --production --frozen-lockfile && bun pm cache clean
+
+# Copy backend source code
+COPY src ./src
+
+# Copy Playwright browser cache from the dedicated stage
+COPY --from=playwright-installer /root/.cache /root/.cache
+
+# Copy built frontend assets from the frontend builder stage
+COPY --from=frontend-builder /app/frontend/build ./static
+
+# Expose the application port
+EXPOSE 3000
+
+# Define the healthcheck using curl (installed above)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl --fail http://localhost:3000/health || exit 1
+
+# Run the application
+CMD ["bun", "run", "/app/src/server.ts"]
