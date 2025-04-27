@@ -1,59 +1,45 @@
 # Stage 1: Build Frontend
-FROM node:20-bookworm-slim AS frontend-builder
+FROM oven/bun:1 AS frontend-builder
 WORKDIR /app/frontend
-
-# Install system deps and Bun
-RUN apt-get update && apt-get install -y curl unzip --no-install-recommends && \
-    curl -fsSL https://bun.sh/install | bash && \
-    rm -rf /var/lib/apt/lists/*
-# Add Bun to PATH
-ENV PATH="/root/.bun/bin:${PATH}"
 
 # Install frontend dependencies
 COPY frontend/package.json frontend/bun.lock ./
-RUN bun install --frozen-lockfile && bun pm cache clean
+RUN bun install --frozen-lockfile
 
-# Copy frontend source and build using absolute path
+# Copy frontend source and build
 COPY frontend/ .
 RUN bun run build
 
 # Stage 2: Install Backend Dependencies (including Playwright package)
-FROM node:20-bookworm-slim AS backend-deps
+FROM oven/bun:1 AS backend-deps
 WORKDIR /app
 
-# Install system deps and Bun
+# Install system deps for Playwright
 RUN apt-get update && \
-    apt-get install -y curl unzip libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libdbus-1-3 libatspi2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2 libasound2 --no-install-recommends && \
-    curl -fsSL https://bun.sh/install | bash && \
+    apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libdbus-1-3 libatspi2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2 libasound2 --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
-# Add Bun to PATH
-ENV PATH="/root/.bun/bin:${PATH}"
 
-# Install all backend dependencies using absolute path
+# Install all backend dependencies
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile && bun pm cache clean
+RUN bun install --frozen-lockfile
 
 # Stage 3: Install Playwright Browsers
 FROM backend-deps AS playwright-installer
 WORKDIR /app
-# ENV PATH is inherited from previous stage
 RUN bunx playwright install chromium
 
 # Stage 4: Final Production Image
-FROM node:20-bookworm-slim AS final
+FROM oven/bun:1 AS final
 WORKDIR /app
 
-# Install system deps and Bun
+# Install system deps for Playwright
 RUN apt-get update && \
-    apt-get install -y curl libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libdbus-1-3 libatspi2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2 libasound2 --no-install-recommends && \
-    curl -fsSL https://bun.sh/install | bash && \
+    apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libdbus-1-3 libatspi2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2 libasound2 --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
-# Add Bun to PATH
-ENV PATH="/root/.bun/bin:${PATH}"
 
 # Install ONLY production backend dependencies
 COPY package.json bun.lock ./
-RUN bun install --production --frozen-lockfile && bun pm cache clean
+RUN bun install --production --frozen-lockfile
 
 # Copy backend source code
 COPY src ./src
@@ -67,7 +53,7 @@ COPY --from=frontend-builder /app/frontend/build ./static
 # Expose the application port
 EXPOSE 3000
 
-# Define the healthcheck using curl (installed above)
+# Define the healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl --fail http://localhost:3000/health || exit 1
 
