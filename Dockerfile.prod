@@ -5,15 +5,16 @@ WORKDIR /app/frontend
 # Install Bun
 RUN apt-get update && apt-get install -y curl unzip --no-install-recommends && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://bun.sh/install | bash
+# Set ENV PATH for subsequent stages and final container
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Install frontend dependencies
+# Install frontend dependencies using absolute path
 COPY frontend/package.json frontend/bun.lock ./
-RUN bun install --frozen-lockfile && bun pm cache clean
+RUN /root/.bun/bin/bun install --frozen-lockfile && /root/.bun/bin/bun pm cache clean
 
-# Copy frontend source and build
+# Copy frontend source and build using absolute path
 COPY frontend/ .
-RUN bun run build
+RUN /root/.bun/bin/bun run build
 
 # Stage 2: Install Backend Dependencies (including Playwright package)
 FROM node:20-bookworm-slim AS backend-deps
@@ -27,14 +28,15 @@ RUN apt-get update && \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Install all backend dependencies
+# Install all backend dependencies using absolute path
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile && bun pm cache clean
+RUN /root/.bun/bin/bun install --frozen-lockfile && /root/.bun/bin/bun pm cache clean
 
 # Stage 3: Install Playwright Browsers
 FROM backend-deps AS playwright-installer
 WORKDIR /app
-RUN bunx playwright install chromium
+# ENV PATH is inherited, but use absolute path for safety
+RUN /root/.bun/bin/bunx playwright install chromium
 
 # Stage 4: Final Production Image
 FROM node:20-bookworm-slim AS final
@@ -47,9 +49,9 @@ RUN apt-get update && \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Install ONLY production backend dependencies
+# Install ONLY production backend dependencies using absolute path
 COPY package.json bun.lock ./
-RUN bun install --production --frozen-lockfile && bun pm cache clean
+RUN /root/.bun/bin/bun install --production --frozen-lockfile && /root/.bun/bin/bun pm cache clean
 
 # Copy backend source code
 COPY src ./src
@@ -67,5 +69,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl --fail http://localhost:3000/health || exit 1
 
-# Run the application
-CMD ["bun", "run", "/app/src/server.ts"]
+# Run the application using absolute path in CMD
+CMD ["/root/.bun/bin/bun", "run", "/app/src/server.ts"]
