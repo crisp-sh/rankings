@@ -9,6 +9,8 @@ RUN bun install --frozen-lockfile
 # Copy frontend source and build
 COPY frontend/ .
 RUN bun run build
+# Ensure build directory exists (create it if it doesn't)
+RUN mkdir -p dist
 
 # Stage 2: Install Backend Dependencies (including Playwright package)
 FROM oven/bun:1 AS backend-deps
@@ -48,7 +50,7 @@ COPY src ./src
 COPY --from=playwright-installer /root/.cache /root/.cache
 
 # Copy built frontend assets from the frontend builder stage
-COPY --from=frontend-builder /app/frontend/build ./static
+COPY --from=frontend-builder /app/frontend/dist ./static
 
 # Expose the application port
 EXPOSE 3000
