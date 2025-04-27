@@ -36,4 +36,9 @@ networks:
 
 volumes:
   rankings-data:
+    name: llm-rankings-data-volume
     driver: local
+    driver_opts:
+      type: none
+      device: ${DATA_PATH:-/var/lib/llm-rankings}
+      o: bind
