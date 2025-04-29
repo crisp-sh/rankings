@@ -28,7 +28,7 @@ services:
         - "traefik.http.routers.llm-rankings.entrypoints=websecure"
         - "traefik.http.routers.llm-rankings.tls.certresolver=cloudflare"
         - "traefik.http.services.llm-rankings.loadbalancer.server.port=3000"
-        - "traefik.docker.network=proxy"
+        - "traefik.swarm.network=proxy"
         - "com.crispsh.autodeploy=true"
 
 networks:
